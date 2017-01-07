@@ -1,0 +1,15 @@
+{
+  "name": "react-collectable",
+  "version": "0.0.1",
+  "description": "Promise-based form validation logic for React",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"No test specified\""
+  },
+  "author": "Nick Matantsev <nick.matantsev@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "react": "^15.4.1",
+    "react-dom": "^15.4.1"
+  }
+}
