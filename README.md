@@ -4,6 +4,13 @@ Promise-based form validation logic for React.
 
 Some demos here: https://github.com/unframework/react-interactable
 
+Brief feature outline:
+
+- supports asynchronous validation
+- pluggable
+- flexible
+- minimal
+
 ## To Do
 
 - brief example

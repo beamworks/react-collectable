@@ -7,6 +7,19 @@
     "test": "echo \"No test specified\""
   },
   "author": "Nick Matantsev <nick.matantsev@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/unframework/react-collectable.git"
+  },
+  "keywords": [
+    "react",
+    "form",
+    "validation",
+    "validator",
+    "async",
+    "asynchronous",
+    "promises"
+  ],
   "license": "ISC",
   "dependencies": {
     "react": "^15.4.1",
