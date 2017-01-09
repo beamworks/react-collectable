@@ -104,7 +104,7 @@ class Map extends React.PureComponent {
 
 // @todo allow cases with sticky pre-validation - i.e. when pre-validated just use that value immediately
 // (may still be best done outside of this component, but need the recipe)
-class Value extends React.Component {
+class Value extends React.PureComponent {
     constructor() {
         super();
 
