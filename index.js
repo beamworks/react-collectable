@@ -60,7 +60,7 @@ class Map extends React.PureComponent {
             var refNode = null;
 
             return React.cloneElement(
-                props.collect,
+                React.Children.only(props.children),
                 { ref: (node) => {
                     if (node) {
                         setNode(parameterName, node);
@@ -98,7 +98,7 @@ class Map extends React.PureComponent {
     }
 
     render() {
-        return this.props.contents(this._parameterComponent, this._collectValue.bind(this));
+        return this.props.children(this._parameterComponent, this._collectValue.bind(this));
     }
 }
 
@@ -176,7 +176,7 @@ class Value extends React.PureComponent {
     }
 
     render() {
-        return this.props.contents(
+        return this.props.children(
             this.state.errorValue,
             this.state.currentCollection !== null,
             this._collectValue.bind(this)
