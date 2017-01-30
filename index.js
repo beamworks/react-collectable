@@ -14,9 +14,9 @@ class InputError extends Error {
 const COLLECTABLE_GETTER_KEY = '__collectableGetter_' + Math.round(Math.random() * 10000);
 
 function connect(obj, getter) {
-    if (!(obj instanceof React.Component)) {
-        throw new Error('expecting React component');
-    }
+    // if (!(obj instanceof React.Component)) {
+    //     throw new Error('expecting React component');
+    // }
 
     obj[COLLECTABLE_GETTER_KEY] = getter;
 }
