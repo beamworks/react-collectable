@@ -184,11 +184,113 @@ class Value extends React.PureComponent {
     }
 }
 
+class Debouncer extends React.PureComponent {
+    constructor() {
+        super();
+
+        this._node = null;
+
+        this.state = { currentTimeoutId: null };
+
+        connect(this, this._collectValue.bind(this));
+    }
+
+    _collectValue() {
+        return new Promise((resolve) => {
+            const timeoutId = setTimeout(() => {
+                if (this.state.currentTimeoutId !== timeoutId) {
+                    return;
+                }
+
+                this.setState({ currentTimeoutId: null });
+
+                resolve();
+            }, 300); // @todo parameterize
+
+            this.setState({ currentTimeoutId: timeoutId });
+        }).then(() => {
+            // collect from child in a "then" handler instead of raw timeout callback
+            // to properly wrap synchronous logic
+            return collect(this._node);
+        });
+    }
+
+    render() {
+        return React.cloneElement(this.props.children(this.state.currentTimeoutId !== null), {
+            ref: (node) => {
+                this._node = node;
+            }
+        })
+    }
+}
+
+class Prevalidator extends React.PureComponent {
+    constructor() {
+        super();
+
+        this._node = null;
+
+        this._currentValueBase = null;
+        this._currentValue = Promise.reject();
+
+        this.state = { isValid: false };
+
+        connect(this, this._collectValue.bind(this));
+    }
+
+    _collectValue() {
+        if (this._currentValue === null) {
+            throw new Error('value not ready');
+        }
+
+        // @todo always get latest value since it is already cached: to catch obscure corner cases where onChange does not fire
+        return this._currentValue;
+    }
+
+    _update(valueBase) {
+        // initiate collection only when there was actual change
+        if (valueBase !== null && this._currentValueBase === valueBase) {
+            return;
+        }
+
+        this._currentValueBase = valueBase;
+        this._currentValue = collect(this._node);
+
+        // clear validity while collecting, and report on outcome
+        if (this.state.isValid) {
+            this.props.onInvalidation && this.props.onInvalidation();
+        }
+
+        this.setState({ isValid: false });
+
+        const value = this._currentValue;
+        this._currentValue.then(() => {
+            // ignore if obsolete result
+            if (this._currentValue !== value) {
+                return;
+            }
+
+            this.setState({ isValid: true });
+            this.props.onValidation && this.props.onValidation();
+        });
+    }
+
+    render() {
+        return React.cloneElement(this.props.children(this.state.isValid, this._update.bind(this)), {
+            ref: (node) => {
+                this._node = node;
+            }
+        })
+    }
+}
+
 module.exports = {
     connect: connect,
     collect: collect,
 
     Map: Map,
     Value: Value,
+    Debouncer: Debouncer,
+    Prevalidator: Prevalidator,
     InputError: InputError
 };
