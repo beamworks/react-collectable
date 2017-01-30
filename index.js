@@ -185,7 +185,11 @@ class Value extends React.PureComponent {
 }
 
 class Debouncer extends React.PureComponent {
-    constructor() {
+    constructor(props) {
+        if (props.delayMs === undefined) {
+            throw new Error('must define debounce delay');
+        }
+
         super();
 
         this._node = null;
@@ -205,7 +209,7 @@ class Debouncer extends React.PureComponent {
                 this.setState({ currentTimeoutId: null });
 
                 resolve();
-            }, 300); // @todo parameterize
+            }, this.props.delayMs);
 
             this.setState({ currentTimeoutId: timeoutId });
         }).then(() => {
