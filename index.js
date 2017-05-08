@@ -115,7 +115,7 @@ class Pass extends React.PureComponent {
             });
         };
 
-        Collectable.connect(this, () => Collectable.collect(this._passNode));
+        connect(this, () => collect(this._passNode));
     }
 
     render() {
@@ -136,8 +136,8 @@ class Status extends React.PureComponent {
             inputError: null
         }
 
-        Collectable.connect(this, () => {
-            const collection = Collectable.collect(this._inputNode);
+        connect(this, () => {
+            const collection = collect(this._inputNode);
 
             this._onPending(collection);
 
