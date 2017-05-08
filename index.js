@@ -124,7 +124,6 @@ class Pass extends React.PureComponent {
 }
 
 // intercept collectable promises and track latest status
-// @todo integrate into core lib and remove tracking func from Collectable.Value
 class Status extends React.PureComponent {
     constructor(props) {
         super();
@@ -177,17 +176,12 @@ class Status extends React.PureComponent {
     }
 }
 
+// filter DOM input value through validation and feed it up into collectable pipeline
 // @todo allow cases with sticky pre-validation - i.e. when pre-validated just use that value immediately
-// @todo remove status tracking here now that the Status component is separately available
 // (may still be best done outside of this component, but need the recipe)
-class Value extends React.PureComponent {
+class Input extends React.PureComponent {
     constructor() {
         super();
-
-        this.state = {
-            currentCollection: null,
-            errorValue: null
-        };
 
         connect(this, this._collectValue.bind(this));
     }
@@ -203,60 +197,19 @@ class Value extends React.PureComponent {
             resolve(filter ? filter(inputValue) : inputValue);
         });
 
-        // save reference but not clear local error yet
-        // @todo reconsider
-        this.setState({
-            currentCollection: result
-        });
-
-        // clear local error on success if we are still the active collection process
-        result.then((errorValue) => {
-            this.setState((state) => state.currentCollection === result
-                ? {
-                    currentCollection: null,
-                    errorValue: null
-                }
-                : {})
-        });
-
-        // report local error if we are still the active collection process
-        result.catch((errorValue) => {
-            this.setState((state) => state.currentCollection === result
-                ? {
-                    currentCollection: null,
-                    errorValue: errorValue
-                }
-                : {})
-        });
-
         return result;
     }
 
     _getInputValue() {
-        // @todo radio, checkbox support, etc
-        const INPUT_SELECTOR = 'input, select, textarea';
-        const rootDomNode = ReactDOM.findDOMNode(this);
+        // @todo radio, checkbox support, etc? should be separate pattern
+        const inputNode = ReactDOM.findDOMNode(this);
 
-        // match self or child node as input element
-        const matcher = (
-            Element.prototype.matches ||
-            Element.prototype.msMatchesSelector ||
-            Element.prototype.webkitMatchesSelector
-        );
-
-        const inputNode = matcher.call(rootDomNode, INPUT_SELECTOR)
-            ? rootDomNode
-            : rootDomNode.querySelector(INPUT_SELECTOR);
-
+        // report the DOM node value
         return inputNode.value;
     }
 
     render() {
-        return this.props.children(
-            this.state.errorValue,
-            this.state.currentCollection !== null,
-            this._collectValue.bind(this)
-        );
+        return React.Children.only(this.props.children);
     }
 }
 
@@ -371,7 +324,7 @@ module.exports = {
     Map: Map,
     Pass: Pass,
     Status: Status,
-    Value: Value,
+    Input: Input,
     Debouncer: Debouncer,
     Prevalidator: Prevalidator,
     InputError: InputError
