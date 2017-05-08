@@ -102,7 +102,83 @@ class Map extends React.PureComponent {
     }
 }
 
+// pass a marked descendant's value to the parent
+class Pass extends React.PureComponent {
+    constructor(props) {
+        super();
+
+        this._passNode = null;
+        this._passComponent = (props) => {
+            // save reference to the child wrapped by this pass marker component
+            return React.cloneElement(React.Children.only(props.children), {
+                ref: (node) => { this._passNode = node; }
+            });
+        };
+
+        Collectable.connect(this, () => Collectable.collect(this._passNode));
+    }
+
+    render() {
+        return this.props.children(this._passComponent);
+    }
+}
+
+// intercept collectable promises and track latest status
+// @todo integrate into core lib and remove tracking func from Collectable.Value
+class Status extends React.PureComponent {
+    constructor(props) {
+        super();
+
+        this._inputNode = null;
+
+        this.state = {
+            currentCollection: null,
+            inputError: null
+        }
+
+        Collectable.connect(this, () => {
+            const collection = Collectable.collect(this._inputNode);
+
+            this._onPending(collection);
+
+            collection.then(() => {
+                this._onCompletion(collection, null);
+            }, (error) => {
+                this._onCompletion(collection, error);
+            });
+
+            return collection;
+        });
+    }
+
+    _onPending(collection) {
+        // track new collection promise but not clear old error yet
+        // (some consumers might still need to show it)
+        this.setState({
+            currentCollection: collection
+        });
+    }
+
+    _onCompletion(collection, error) {
+        // clear pending state only if this is still the current collection promise
+        this.setState((state) => state.currentCollection === collection ? {
+            currentCollection: null,
+            inputError: error
+        } : null);
+    }
+
+    render() {
+        const isPending = this.state.currentCollection !== null;
+        const inputError = this.state.inputError;
+
+        return React.cloneElement(this.props.children(inputError, isPending), {
+            ref: (node) => { this._inputNode = node; }
+        });
+    }
+}
+
 // @todo allow cases with sticky pre-validation - i.e. when pre-validated just use that value immediately
+// @todo remove status tracking here now that the Status component is separately available
 // (may still be best done outside of this component, but need the recipe)
 class Value extends React.PureComponent {
     constructor() {
@@ -293,6 +369,8 @@ module.exports = {
     collect: collect,
 
     Map: Map,
+    Pass: Pass,
+    Status: Status,
     Value: Value,
     Debouncer: Debouncer,
     Prevalidator: Prevalidator,
