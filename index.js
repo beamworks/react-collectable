@@ -31,6 +31,61 @@ function collect(obj) {
     return getter();
 }
 
+// allow user to submit collectable data and report the first eventual successful value
+// (can be collected right away, but does not trigger child collection without call to invoke)
+class Root extends React.PureComponent {
+    constructor(props) {
+        super();
+
+        this._contentsNode = null;
+        this._currentCollection = null;
+        this._isResolved = false;
+
+        // always promise the same one possible result
+        this._result = new Promise((resolve) => {
+            this._resolve = resolve;
+        });
+
+        connect(this, () => this._result);
+    }
+
+    _submit() {
+        // disallow re-submit if already succeeded
+        if (this._isResolved) {
+            throw new Error('already resolved');
+        }
+
+        // disallow re-submit while pending
+        if (this._currentCollection) {
+            throw new Error('already submitted');
+        }
+
+        this._currentCollection = collect(this._contentsNode);
+
+        // on success, prevent further submit and report to parent
+        this._currentCollection.then((v) => {
+            this._currentCollection = null; // always clear pending state for consistency
+            this._isResolved = true;
+
+            // @todo pipe in original resolved promise instead if the value itself? for more debug info?
+            this._resolve(v);
+        }, () => {
+            // simply allow retrying again
+            this._currentCollection = null;
+        });
+    }
+
+    render() {
+        const contents = this.props.children(
+            () => this._submit()
+        );
+
+        return React.cloneElement(contents, {
+            ref: (node) => { this._contentsNode = node; }
+        });
+    }
+}
+
 // @todo write test case for conditional params (key should not even be present in returned map)
 class Map extends React.PureComponent {
     constructor() {
@@ -321,6 +376,7 @@ module.exports = {
     connect: connect,
     collect: collect,
 
+    Root: Root,
     Map: Map,
     Pass: Pass,
     Status: Status,
