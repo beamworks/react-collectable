@@ -2,17 +2,20 @@
 
 Promise-based form validation logic for React.
 
-Some demos here: https://github.com/unframework/react-interactable
+Approach:
+
+- based on Promises
+- declarative, JSX-oriented
+- some assembly effort required
+- composition using [function-as-child](https://medium.com/merrickchristensen/function-as-child-components-5f3920a9ace9) technique
 
 Brief feature outline:
 
-- supports asynchronous validation
-- pluggable
-- flexible
-- minimal
+- asynchronous validation support
+- pluggable, minimal and flexible
 
 ## To Do
 
 - brief example
-- sort out all the bits with ES6 syntax
-- make it work with Babel as well as Browserify
+- sort out ES6 compilation
+- test on Babel
