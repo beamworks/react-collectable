@@ -1,6 +1,6 @@
 {
   "name": "react-collectable",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Promise-based form validation logic for React",
   "main": "index.js",
   "scripts": {
