@@ -9,7 +9,7 @@
   "author": "Nick Matantsev <nick.matantsev@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/unframework/react-collectable.git"
+    "url": "https://github.com/beamworks/react-collectable.git"
   },
   "keywords": [
     "react",
