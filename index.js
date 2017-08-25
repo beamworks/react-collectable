@@ -31,6 +31,85 @@ function collect(obj) {
     return getter();
 }
 
+function createCollectableSource(parentContext) {
+    return class CollectableSource extends React.PureComponent {
+        componentDidMount() {
+            parentContext._registerCurrentSource(this);
+        }
+
+        componentWillUnmount() {
+            parentContext._unregisterCurrentSource(this);
+        }
+
+        _collect() {
+            return this.props.value();
+        }
+
+        render() {
+            return React.Children.only(this.props.children);
+        }
+    }
+}
+
+class Context extends React.PureComponent {
+    constructor(props) {
+        super();
+
+        this._sourceComponent = createCollectableSource(this);
+        this._currentSource = null;
+
+        this._handleCollect = this._collect.bind(this);
+    }
+
+    getChildContext() {
+        return {
+            collectableSourceImpl: this._sourceComponent
+        };
+    }
+
+    _registerCurrentSource(source) {
+        if (this._currentSource !== null) {
+            throw new Error('source already registered');
+        }
+
+        this._currentSource = source;
+    }
+
+    _unregisterCurrentSource(source) {
+        if (this._currentSource !== source) {
+            throw new Error('unrecognized source cannot be registered');
+        }
+
+        this._currentSource = null;
+    }
+
+    _collect() {
+        if (this._currentSource === null) {
+            throw new Error('no source registered');
+        }
+
+        console.log('collect!', this._currentSource._collect());
+    }
+
+    render() {
+        return this.props.children(this._handleCollect);
+    }
+}
+
+Context.childContextTypes = {
+    collectableSourceImpl: React.PropTypes.func.isRequired
+}
+
+function Source(props, context) {
+    return React.createElement(context.collectableSourceImpl, { value: props.value }, [
+        React.Children.only(props.children)
+    ]);
+}
+
+Source.contextTypes = {
+    collectableSourceImpl: React.PropTypes.func.isRequired
+}
+
 // @todo write test case for conditional params (key should not even be present in returned map)
 class Map extends React.PureComponent {
     constructor() {
