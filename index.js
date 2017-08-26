@@ -70,7 +70,12 @@ class Context extends React.PureComponent {
     }
 
     render() {
-        return React.Children.only(this.props.children);
+        const children = this.props.children;
+
+        // if function-as-child, expose the collection function directly
+        return typeof children === 'function'
+            ? children(() => this.collect())
+            : React.Children.only(children);
     }
 }
 
