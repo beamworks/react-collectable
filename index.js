@@ -79,9 +79,11 @@ Context.childContextTypes = {
 }
 
 function Source(props, context) {
-    return React.createElement(context.collectableSourceImpl, { value: props.value }, [
+    return React.createElement(
+        context.collectableSourceImpl,
+        { value: props.value },
         React.Children.only(props.children)
-    ]);
+    );
 }
 
 Source.contextTypes = {
@@ -124,9 +126,7 @@ class Map extends React.PureComponent {
                 }
 
                 refNode = node;
-            } }, [
-                React.Children.only(props.children)
-            ]);
+            } }, React.Children.only(props.children));
         };
     }
 
@@ -152,9 +152,9 @@ class Map extends React.PureComponent {
     }
 
     render() {
-        return React.createElement(Source, { value: () => this._collectValue() }, [
+        return React.createElement(Source, { value: () => this._collectValue() }, (
             this.props.children(this._parameterComponent)
-        ]);
+        ));
     }
 }
 
@@ -206,11 +206,11 @@ class Status extends React.PureComponent {
         const inputError = this.state.inputError;
 
         // set up source and a sub-context
-        return React.createElement(Source, { value: () => this._collectValue() }, [
-            React.createElement(Context, { ref: (node) => this._subContextNode = node }, [
+        return React.createElement(Source, { value: () => this._collectValue() }, (
+            React.createElement(Context, { ref: (node) => this._subContextNode = node }, (
                 this.props.children(inputError, isPending)
-            ])
-        ]);
+            ))
+        ));
     }
 }
 
@@ -241,9 +241,9 @@ class Input extends React.PureComponent {
     }
 
     render() {
-        return React.createElement(Source, { value: () => this._collectValue() }, [
+        return React.createElement(Source, { value: () => this._collectValue() }, (
             React.Children.only(this.props.children)
-        ]);
+        ));
     }
 }
 
@@ -282,11 +282,11 @@ class Debouncer extends React.PureComponent {
 
     render() {
         // set up source and a sub-context
-        return React.createElement(Source, { value: () => this._collectValue() }, [
-            React.createElement(Context, { ref: (node) => this._subContextNode = node }, [
+        return React.createElement(Source, { value: () => this._collectValue() }, (
+            React.createElement(Context, { ref: (node) => this._subContextNode = node }, (
                 this.props.children(this.state.currentTimeoutId !== null)
-            ])
-        ]);
+            ))
+        ));
     }
 }
 
@@ -340,11 +340,11 @@ class Prevalidator extends React.PureComponent {
     }
 
     render() {
-        return React.createElement(Source, { value: () => this._collectValue() }, [
-            React.createElement(Context, { ref: (node) => this._subContextNode = node }, [
+        return React.createElement(Source, { value: () => this._collectValue() }, (
+            React.createElement(Context, { ref: (node) => this._subContextNode = node }, (
                 this.props.children(this.state.isValid, this._update.bind(this))
-            ])
-        ]);
+            ))
+        ));
     }
 }
 
