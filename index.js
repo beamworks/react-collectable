@@ -79,8 +79,14 @@ Context.childContextTypes = {
 }
 
 function Source(props, context) {
+    const sourceImpl = context.collectableSourceImpl;
+
+    if (!sourceImpl) {
+        throw new Error('must be inside collectable context');
+    }
+
     return React.createElement(
-        context.collectableSourceImpl,
+        sourceImpl,
         { value: props.value },
         React.Children.only(props.children)
     );
