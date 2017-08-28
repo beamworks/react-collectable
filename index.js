@@ -11,24 +11,94 @@ class InputError extends Error {
     }
 }
 
-const COLLECTABLE_GETTER_KEY = '__collectableGetter_' + Math.round(Math.random() * 10000);
+function createCollectableSource(parentContext) {
+    return class CollectableSource extends React.PureComponent {
+        componentDidMount() {
+            parentContext._registerCurrentSource(this);
+        }
 
-function connect(obj, getter) {
-    // if (!(obj instanceof React.Component)) {
-    //     throw new Error('expecting React component');
-    // }
+        componentWillUnmount() {
+            parentContext._unregisterCurrentSource(this);
+        }
 
-    obj[COLLECTABLE_GETTER_KEY] = getter;
+        _collect() {
+            return this.props.value();
+        }
+
+        render() {
+            return React.Children.only(this.props.children);
+        }
+    }
 }
 
-function collect(obj) {
-    const getter = obj[COLLECTABLE_GETTER_KEY];
+class Context extends React.PureComponent {
+    constructor(props) {
+        super();
 
-    if (!getter) {
-        throw new Error('instance not collectable');
+        this._sourceComponent = createCollectableSource(this);
+        this._currentSource = null;
     }
 
-    return getter();
+    getChildContext() {
+        return {
+            collectableSourceImpl: this._sourceComponent
+        };
+    }
+
+    _registerCurrentSource(source) {
+        if (this._currentSource !== null) {
+            throw new Error('source already registered');
+        }
+
+        this._currentSource = source;
+    }
+
+    _unregisterCurrentSource(source) {
+        if (this._currentSource !== source) {
+            throw new Error('unrecognized source cannot be registered');
+        }
+
+        this._currentSource = null;
+    }
+
+    collect() {
+        if (this._currentSource === null) {
+            throw new Error('no source registered');
+        }
+
+        return this._currentSource._collect();
+    }
+
+    render() {
+        const children = this.props.children;
+
+        // if function-as-child, expose the collection function directly
+        return typeof children === 'function'
+            ? children(() => this.collect())
+            : React.Children.only(children);
+    }
+}
+
+Context.childContextTypes = {
+    collectableSourceImpl: React.PropTypes.func.isRequired
+}
+
+function Source(props, context) {
+    const sourceImpl = context.collectableSourceImpl;
+
+    if (!sourceImpl) {
+        throw new Error('must be inside collectable context');
+    }
+
+    return React.createElement(
+        sourceImpl,
+        { value: props.value },
+        React.Children.only(props.children)
+    );
+}
+
+Source.contextTypes = {
+    collectableSourceImpl: React.PropTypes.func.isRequired
 }
 
 // @todo write test case for conditional params (key should not even be present in returned map)
@@ -57,30 +127,25 @@ class Map extends React.PureComponent {
 
         this._parameterComponent = function Parameter(props) {
             const parameterName = props.name;
-            var refNode = null;
+            let refNode = null;
 
-            return React.cloneElement(
-                React.Children.only(props.children),
-                { ref: (node) => {
-                    if (node) {
-                        setNode(parameterName, node);
-                    } else {
-                        unsetNode(parameterName, refNode);
-                    }
+            return React.createElement(Context, { ref: (node) => {
+                if (node) {
+                    setNode(parameterName, node);
+                } else {
+                    unsetNode(parameterName, refNode);
+                }
 
-                    refNode = node;
-                } }
-            );
+                refNode = node;
+            } }, React.Children.only(props.children));
         };
-
-        connect(this, this._collectValue.bind(this));
     }
 
     _collectValue() {
         // wrap collection itself into promise body to catch and report developer errors
         return new Promise((resolve, reject) => {
             const nameList = Object.keys(this._nodeMap);
-            const valuePromiseList = nameList.map((name) => collect(this._nodeMap[name]));
+            const valuePromiseList = nameList.map((name) => this._nodeMap[name].collect());
 
             Promise.all(valuePromiseList).then((valueList) => {
                 const result = Object.create(null);
@@ -98,28 +163,9 @@ class Map extends React.PureComponent {
     }
 
     render() {
-        return this.props.children(this._parameterComponent, this._collectValue.bind(this));
-    }
-}
-
-// pass a marked descendant's value to the parent
-class Pass extends React.PureComponent {
-    constructor(props) {
-        super();
-
-        this._passNode = null;
-        this._passComponent = (props) => {
-            // save reference to the child wrapped by this pass marker component
-            return React.cloneElement(React.Children.only(props.children), {
-                ref: (node) => { this._passNode = node; }
-            });
-        };
-
-        connect(this, () => collect(this._passNode));
-    }
-
-    render() {
-        return this.props.children(this._passComponent);
+        return React.createElement(Source, { value: () => this._collectValue() }, (
+            this.props.children(this._parameterComponent)
+        ));
     }
 }
 
@@ -128,26 +174,26 @@ class Status extends React.PureComponent {
     constructor(props) {
         super();
 
-        this._inputNode = null;
+        this._subContextNode = null;
 
         this.state = {
             currentCollection: null,
             inputError: null
         }
+    }
 
-        connect(this, () => {
-            const collection = collect(this._inputNode);
+    _collectValue() {
+        const collection = this._subContextNode.collect();
 
-            this._onPending(collection);
+        this._onPending(collection);
 
-            collection.then(() => {
-                this._onCompletion(collection, null);
-            }, (error) => {
-                this._onCompletion(collection, error);
-            });
-
-            return collection;
+        collection.then(() => {
+            this._onCompletion(collection, null);
+        }, (error) => {
+            this._onCompletion(collection, error);
         });
+
+        return collection;
     }
 
     _onPending(collection) {
@@ -170,9 +216,12 @@ class Status extends React.PureComponent {
         const isPending = this.state.currentCollection !== null;
         const inputError = this.state.inputError;
 
-        return React.cloneElement(this.props.children(inputError, isPending), {
-            ref: (node) => { this._inputNode = node; }
-        });
+        // set up source and a sub-context
+        return React.createElement(Source, { value: () => this._collectValue() }, (
+            React.createElement(Context, { ref: (node) => this._subContextNode = node }, (
+                this.props.children(inputError, isPending)
+            ))
+        ));
     }
 }
 
@@ -180,12 +229,6 @@ class Status extends React.PureComponent {
 // @todo allow cases with sticky pre-validation - i.e. when pre-validated just use that value immediately
 // (may still be best done outside of this component, but need the recipe)
 class Input extends React.PureComponent {
-    constructor() {
-        super();
-
-        connect(this, this._collectValue.bind(this));
-    }
-
     _collectValue() {
         const filter = this.props.filter;
         const inputValue = this._getInputValue();
@@ -209,7 +252,9 @@ class Input extends React.PureComponent {
     }
 
     render() {
-        return React.Children.only(this.props.children);
+        return React.createElement(Source, { value: () => this._collectValue() }, (
+            React.Children.only(this.props.children)
+        ));
     }
 }
 
@@ -221,11 +266,9 @@ class Debouncer extends React.PureComponent {
 
         super();
 
-        this._node = null;
+        this._subContextNode = null;
 
         this.state = { currentTimeoutId: null };
-
-        connect(this, this._collectValue.bind(this));
     }
 
     _collectValue() {
@@ -244,16 +287,17 @@ class Debouncer extends React.PureComponent {
         }).then(() => {
             // collect from child in a "then" handler instead of raw timeout callback
             // to properly wrap synchronous logic
-            return collect(this._node);
+            return this._subContextNode.collect();
         });
     }
 
     render() {
-        return React.cloneElement(this.props.children(this.state.currentTimeoutId !== null), {
-            ref: (node) => {
-                this._node = node;
-            }
-        })
+        // set up source and a sub-context
+        return React.createElement(Source, { value: () => this._collectValue() }, (
+            React.createElement(Context, { ref: (node) => this._subContextNode = node }, (
+                this.props.children(this.state.currentTimeoutId !== null)
+            ))
+        ));
     }
 }
 
@@ -261,14 +305,12 @@ class Prevalidator extends React.PureComponent {
     constructor() {
         super();
 
-        this._node = null;
+        this._subContextNode = null;
 
         this._currentValueBase = null;
         this._currentValue = Promise.reject();
 
         this.state = { isValid: false };
-
-        connect(this, this._collectValue.bind(this));
     }
 
     _collectValue() {
@@ -287,7 +329,7 @@ class Prevalidator extends React.PureComponent {
         }
 
         this._currentValueBase = valueBase;
-        this._currentValue = collect(this._node);
+        this._currentValue = this._subContextNode.collect();
 
         // clear validity while collecting, and report on outcome
         if (this.state.isValid) {
@@ -309,20 +351,19 @@ class Prevalidator extends React.PureComponent {
     }
 
     render() {
-        return React.cloneElement(this.props.children(this.state.isValid, this._update.bind(this)), {
-            ref: (node) => {
-                this._node = node;
-            }
-        })
+        return React.createElement(Source, { value: () => this._collectValue() }, (
+            React.createElement(Context, { ref: (node) => this._subContextNode = node }, (
+                this.props.children(this.state.isValid, this._update.bind(this))
+            ))
+        ));
     }
 }
 
 module.exports = {
-    connect: connect,
-    collect: collect,
+    Context: Context,
+    Source: Source,
 
     Map: Map,
-    Pass: Pass,
     Status: Status,
     Input: Input,
     Debouncer: Debouncer,
