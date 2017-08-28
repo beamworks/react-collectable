@@ -230,14 +230,22 @@ class Status extends React.PureComponent {
 // (may still be best done outside of this component, but need the recipe)
 class Input extends React.PureComponent {
     _collectValue() {
-        const filter = this.props.filter;
+        // get filter or default passthrough
+        const filter = this.props.hasOwnProperty('filter')
+            ? this.props.filter
+            : (value => value);
+
+        if (!filter || typeof filter !== 'function') {
+            throw new Error('filter should be a function');
+        }
+
         const inputValue = this._getInputValue();
 
         // wrap possible synchronous errors in a promise
         // @todo this generates a console error still, on rejection (even though things work as expected otherwise)
         // @todo treat undefined filter result as simple pass-through
         const result = new Promise((resolve) => {
-            resolve(filter ? filter(inputValue) : inputValue);
+            resolve(filter(inputValue));
         });
 
         return result;
