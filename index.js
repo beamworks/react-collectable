@@ -1,5 +1,6 @@
 const React = require('react');
 const ReactDOM = require('react-dom');
+const PropTypes = require('prop-types');
 
 // generic input data collection error indicating an issue with upstream value
 // upstream errors are handled separately, so this error report is a minimal sentinel object
@@ -80,7 +81,7 @@ class Context extends React.PureComponent {
 }
 
 Context.childContextTypes = {
-    collectableSourceImpl: React.PropTypes.func.isRequired
+    collectableSourceImpl: PropTypes.func.isRequired
 }
 
 function Source(props, context) {
@@ -98,7 +99,7 @@ function Source(props, context) {
 }
 
 Source.contextTypes = {
-    collectableSourceImpl: React.PropTypes.func.isRequired
+    collectableSourceImpl: PropTypes.func.isRequired
 }
 
 // @todo write test case for conditional params (key should not even be present in returned map)
