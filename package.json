@@ -1,6 +1,6 @@
 {
   "name": "react-collectable",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Promise-based form validation logic for React",
   "main": "index.js",
   "scripts": {
@@ -21,9 +21,15 @@
     "promises"
   ],
   "license": "ISC",
+  "devDependencies": {
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0"
+  },
+  "peerDependencies": {
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0"
+  },
   "dependencies": {
-    "prop-types": "^15.4.1",
-    "react": "^15.4.1",
-    "react-dom": "^15.4.1"
+    "prop-types": "^15.5.7"
   }
 }
