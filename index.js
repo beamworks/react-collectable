@@ -259,11 +259,13 @@ class Input extends React.PureComponent {
     }
 
     _getInputValue() {
-        // @todo radio, checkbox support, etc? should be separate pattern
+        // @todo radio support, etc? should be separate pattern
         const inputNode = ReactDOM.findDOMNode(this);
 
-        // report the DOM node value
-        return inputNode.value;
+        // report the DOM node value (per pattern mentioend in React form docs)
+        return inputNode.type === 'checkbox'
+            ? inputNode.checked
+            : inputNode.value;
     }
 
     render() {
