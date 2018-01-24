@@ -143,6 +143,13 @@ class Map extends React.PureComponent {
     }
 
     _collectValue() {
+        // get filter or default passthrough
+        const filter = this.props.filter || (value => value);
+
+        if (typeof filter !== 'function') {
+            throw new Error('filter should be a function');
+        }
+
         // wrap collection itself into promise body to catch and report developer errors
         return new Promise((resolve, reject) => {
             const nameList = Object.keys(this._nodeMap);
@@ -155,7 +162,7 @@ class Map extends React.PureComponent {
                     result[name] = valueList[i];
                 });
 
-                resolve(result);
+                resolve(filter(result));
             }, () => {
                 // report typical parameter value rejection
                 reject(new InputError());
@@ -232,11 +239,9 @@ class Status extends React.PureComponent {
 class Input extends React.PureComponent {
     _collectValue() {
         // get filter or default passthrough
-        const filter = this.props.hasOwnProperty('filter')
-            ? this.props.filter
-            : (value => value);
+        const filter = this.props.filter || (value => value);
 
-        if (!filter || typeof filter !== 'function') {
+        if (typeof filter !== 'function') {
             throw new Error('filter should be a function');
         }
 
