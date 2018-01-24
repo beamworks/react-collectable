@@ -151,22 +151,23 @@ class Map extends React.PureComponent {
         }
 
         // wrap collection itself into promise body to catch and report developer errors
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             const nameList = Object.keys(this._nodeMap);
             const valuePromiseList = nameList.map((name) => this._nodeMap[name].collect());
 
-            Promise.all(valuePromiseList).then((valueList) => {
+            resolve(Promise.all(valuePromiseList).then((valueList) => {
                 const result = Object.create(null);
 
                 nameList.forEach((name, i) => {
                     result[name] = valueList[i];
                 });
 
-                resolve(filter(result));
+                // filter error is reported in promise as well
+                return filter(result);
             }, () => {
-                // report typical parameter value rejection
-                reject(new InputError());
-            });
+                // report typical parameter value rejection (but not filter errors)
+                throw new InputError();
+            }));
         });
     }
 
