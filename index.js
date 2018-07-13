@@ -263,7 +263,7 @@ class Input extends React.PureComponent {
         const inputNode = ReactDOM.findDOMNode(this);
 
         // report the DOM node value (per pattern mentioend in React form docs)
-        return inputNode.type === 'checkbox'
+        return (inputNode.type === 'checkbox' || inputNode.type === 'radio')
             ? inputNode.checked
             : inputNode.value;
     }
