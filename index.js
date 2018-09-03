@@ -2,13 +2,17 @@ const React = require('react');
 const ReactDOM = require('react-dom');
 const PropTypes = require('prop-types');
 
-// generic input data collection error indicating an issue with upstream value
-// upstream errors are handled separately, so this error report is a minimal sentinel object
-class InputError extends Error {
-    constructor() {
+// map data collection error indicating an issue with upstream value(s)
+// upstream errors may be handled separately, but this error still has info for extended reporting/preview
+class MapError extends Error {
+    constructor(resultMap, errorMap) {
         super('Input error'); // generic text message suitable enough for e.g. a form
 
-        this.name = 'InputError'; // @todo is there a way to do this via super()?
+        this.name = 'MapError'; // @todo is there a way to do this via super()?
+
+        // expose collected values and also sub-errors
+        this.values = resultMap;
+        this.errors = errorMap;
     }
 }
 
@@ -153,20 +157,32 @@ class Map extends React.PureComponent {
         // wrap collection itself into promise body to catch and report developer errors
         return new Promise(resolve => {
             const nameList = Object.keys(this._nodeMap);
-            const valuePromiseList = nameList.map((name) => this._nodeMap[name].collect());
+            const valuePromiseList = nameList.map((name) => this._nodeMap[name].collect().then(
+                result => [ result, true ],
+                error => [ error, false ]
+            ));
 
+            // wait for all results and report error as needed
             resolve(Promise.all(valuePromiseList).then((valueList) => {
-                const result = Object.create(null);
+                const resultMap = Object.create(null);
+                const errorMap = Object.create(null);
 
                 nameList.forEach((name, i) => {
-                    result[name] = valueList[i];
+                    const paramResult = valueList[i];
+
+                    if (paramResult[1]) {
+                        resultMap[name] = paramResult[0];
+                    } else {
+                        errorMap[name] = paramResult[0];
+                    }
                 });
 
+                if (Object.keys(errorMap).length > 0) {
+                    throw new MapError(resultMap, errorMap);
+                }
+
                 // filter error is reported in promise as well
-                return filter(result);
-            }, () => {
-                // report typical parameter value rejection (but not filter errors)
-                throw new InputError();
+                return filter(resultMap);
             }));
         });
     }
@@ -385,5 +401,5 @@ module.exports = {
     Input: Input,
     Debouncer: Debouncer,
     Prevalidator: Prevalidator,
-    InputError: InputError
+    MapError: MapError
 };
