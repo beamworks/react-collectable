@@ -48,7 +48,7 @@ class Context extends React.PureComponent {
 
     _registerCurrentSource(source) {
         if (this._currentSource !== null) {
-            throw new Error('source already registered');
+            throw new Error('cannot have more than one source in one collection context');
         }
 
         this._currentSource = source;
@@ -56,7 +56,7 @@ class Context extends React.PureComponent {
 
     _unregisterCurrentSource(source) {
         if (this._currentSource !== source) {
-            throw new Error('unrecognized source cannot be registered');
+            throw new Error('unrecognized source cannot be unregistered');
         }
 
         this._currentSource = null;
@@ -64,7 +64,7 @@ class Context extends React.PureComponent {
 
     collect() {
         if (this._currentSource === null) {
-            throw new Error('no source registered');
+            throw new Error('no source to collect from');
         }
 
         return this._currentSource._collect();
