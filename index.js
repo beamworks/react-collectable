@@ -207,9 +207,7 @@ class Status extends React.PureComponent {
         }
     }
 
-    _collectValue() {
-        const collection = this._subContextNode.collect();
-
+    _intercept(collection) {
         this._onPending(collection);
 
         collection.then(() => {
@@ -242,7 +240,7 @@ class Status extends React.PureComponent {
         const inputError = this.state.inputError;
 
         // set up source and a sub-context
-        return React.createElement(Source, { value: () => this._collectValue() }, (
+        return React.createElement(Source, { value: () => this._intercept(this._subContextNode.collect()) }, (
             React.createElement(Context, { ref: (node) => this._subContextNode = node }, (
                 this.props.children(inputError, isPending)
             ))
