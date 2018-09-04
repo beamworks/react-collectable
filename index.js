@@ -332,59 +332,58 @@ class Debouncer extends React.PureComponent {
     }
 }
 
-class Prevalidator extends React.PureComponent {
+// @todo unmounted state
+class Preview extends React.PureComponent {
     constructor() {
         super();
 
         this._subContextNode = null;
 
-        this._currentValueBase = null;
-        this._currentValue = Promise.reject();
-
-        this.state = { isValid: false };
+        this.state = {
+            currentCollection: null,
+            lastValue: null
+        };
     }
 
-    _collectValue() {
-        if (this._currentValue === null) {
-            throw new Error('value not ready');
-        }
-
-        // @todo always get latest value since it is already cached: to catch obscure corner cases where onChange does not fire
-        return this._currentValue;
-    }
-
-    _update(valueBase) {
-        // initiate collection only when there was actual change
-        if (valueBase !== null && this._currentValueBase === valueBase) {
-            return;
-        }
-
-        this._currentValueBase = valueBase;
-        this._currentValue = this._subContextNode.collect();
-
-        // clear validity while collecting, and report on outcome
-        if (this.state.isValid) {
-            this.props.onInvalidation && this.props.onInvalidation();
-        }
-
-        this.setState({ isValid: false });
-
-        const value = this._currentValue;
-        this._currentValue.then(() => {
-            // ignore if obsolete result
-            if (this._currentValue !== value) {
-                return;
+    _intercept(collection) {
+        const caughtCollection = collection.catch(error => {
+            if (this.props.catch) {
+                return this.props.catch(error);
             }
 
-            this.setState({ isValid: true });
-            this.props.onValidation && this.props.onValidation();
+            throw error; // rethrow otherwise
+        });
+
+        this._onPending(caughtCollection);
+
+        caughtCollection.then(result => {
+            // report new value only when successful
+            this._onSuccess(caughtCollection, result);
         });
     }
 
+    _onPending(collection) {
+        // track new collection promise but not clear last good value
+        this.setState({
+            currentCollection: collection
+        });
+    }
+
+    _onSuccess(collection, result) {
+        // clear pending state only if this is still the current collection promise
+        this.setState((state) => state.currentCollection === collection ? {
+            lastValue: result
+        } : null);
+    }
+
     render() {
-        return React.createElement(Source, { value: () => this._collectValue() }, (
+        const lastValue = this.state.lastValue;
+
+        // set up source and a sub-context
+        // avoid intercepting if doing normal collection
+        return React.createElement(Source, { value: () => this._subContextNode.collect() }, (
             React.createElement(Context, { ref: (node) => this._subContextNode = node }, (
-                this.props.children(this.state.isValid, this._update.bind(this))
+                this.props.children(lastValue, () => this._intercept(this._subContextNode.collect()))
             ))
         ));
     }
@@ -398,6 +397,6 @@ module.exports = {
     Status: Status,
     Input: Input,
     Debouncer: Debouncer,
-    Prevalidator: Prevalidator,
+    Preview: Preview,
     MapError: MapError
 };
